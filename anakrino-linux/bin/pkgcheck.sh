@@ -1,5 +1,11 @@
 #!/bin/bash
-# 20160909 Kirby
+# 20170611 Kirby
+
+if uname -n |egrep -q 'dev|test|lte|sys|cte'
+then
+    echo "NON-PCI SYSTEM"
+    exit 0
+fi
 
 renice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -8,14 +14,17 @@ dIFS=$IFS
 nlIFS='
 '
 
-startepoch=$(date +%s)
-echo "starttime=\"$(date)\" startepoch=\"$startepoch\""
 
 # terminate script after $killsec seconds pass
-killsec=$(( $(date +"%s") + 86400 ))
+# 1 week minus 10 minutes
+killsec=$(( $(date +"%s") + 604200 ))
 
 # startup sleep for server farms sharing disk
-sleep $(( $RANDOM % 1800 ))
+# 18000 = 5 hours
+startsleep=$(( ( $RANDOM * $RANDOM + 1 ) % 18000 ))
+startepoch=$(date +%s)
+echo "starttime=\"$(date)\" startepoch=\"$startepoch\" startsleep=\"$startsleep\""
+sleep $startsleep
 
 function rpmcheck() {
     local pkg=$1
@@ -76,9 +85,9 @@ function dosleep() {
     local avgsleep=''
 
     # spread randomly throughout 20 hours
-    # +2 to avoid division by 0 in rare cases
-    avgsleep=$(( ( 72000 / $pkgcount ) + 2 ))
-    sleep=$(( $avgsleep + ( $RANDOM % ( $avgsleep / 2 ) ) - ( $RANDOM % ( $avgsleep / 2 ) ) - 2 ))
+    # 518400 = 6 days
+    avgsleep=$(( 518400 / $pkgcount ))
+    sleep=$(( $avgsleep + ( $RANDOM % ( $avgsleep / 3 ) ) - ( $RANDOM % ( $avgsleep / 3 ) ) ))
     #echo "$count / $pkgcount sleep $sleep avg $avgsleep"
     sleep $sleep >/dev/null 2>&1
 }
@@ -101,47 +110,59 @@ function dokill() {
 
 if which rpm >/dev/null 2>&1; then
     pkgcount=$(rpm -qa |wc -l)
-    count=0
-    for pkg in $(rpm -qa); do 
-        count=$(($count + 1))
+    if [[ $pkgcount -ge 1 ]] \
+    || [[ $pkgcount =~ ^[[:digit:]]+$ ]]
+    then
+        count=0
+        for pkg in $(rpm -qa |grep -v logstash); do
+            count=$(($count + 1))
 
-        # Check to see if package still exists.
-        # Ignore package if this system is in the middle of patching
-        if ! rpm -q $pkg >/dev/null 2>&1; then
-            continue
-        fi
-    
-        IFS=$nlIFS
-        for line in $(rpm -V --nodeps --nomtime $pkg); do
-            rpmcheck "$pkg" "${line##* }" "${line%% *}" 
+            # Check to see if package still exists.
+            # Ignore package if this system is in the middle of patching
+            if ! rpm -q $pkg >/dev/null 2>&1; then
+                continue
+            fi
+
+            IFS=$nlIFS
+            for line in $(rpm -V --nodeps --nomtime $pkg); do
+                rpmcheck "$pkg" "${line##* }" "${line%% *}"
+            done
+            IFS=$dIFS
+            dokill $killsec
+            dosleep $pkgcount $count
         done
-        IFS=$dIFS
-        dokill $killsec
-        dosleep $pkgcount $count
-    done
+    else
+        echo "pkgcount for rpm failed"
+    fi
 fi
 
 
 if which dpkg >/dev/null 2>&1; then
     pkgcount=$(dpkg -l |awk '/^ii /' |wc -l)
-    count=0
-    for pkg in $(dpkg -l |awk '/^ii / {print $2}'); do 
-        count=$(($count + 1))
-    
-        # Check to see if package still exists.
-        # Ignore package if this system is in the middle of patching
-        if ! dpkg -s $pkg >/dev/null 2>&1; then
-            continue
-        fi
-    
-        IFS=$nlIFS
-        for line in $(dpkg -V $pkg); do
-            dpkgcheck "$pkg" "${line##* }" "${line%% *}" 
+    if [[ $pkgcount -ge 1 ]] \
+    || [[ $pkgcount =~ ^[[:digit:]]+$ ]]
+    then
+        count=0
+        for pkg in $(dpkg -l |awk '/^ii / {print $2}'); do
+            count=$(($count + 1))
+
+            # Check to see if package still exists.
+            # Ignore package if this system is in the middle of patching
+            if ! dpkg -s $pkg >/dev/null 2>&1; then
+                continue
+            fi
+
+            IFS=$nlIFS
+            for line in $(dpkg -V $pkg); do
+                dpkgcheck "$pkg" "${line##* }" "${line%% *}"
+            done
+            IFS=$dIFS
+            dokill $killsec
+            dosleep $pkgcount $count
         done
-        IFS=$dIFS
-        dokill $killsec
-        dosleep $pkgcount $count
-    done
+    else
+        echo "pkgcount for dpkg failed"
+    fi
 fi
 
 endepoch=$(date +%s)
@@ -152,3 +173,4 @@ runmin=${runmin:$((${#runmin}-2)):${#runmin}}
 runsec=0$(( ($runtime - ( $runhour * 3600 )) % 60 ))
 runsec=${runsec:$((${#runsec}-2)):${#runsec}}
 echo "endtime=\"$(date)\" endepoch=\"$endepoch\" runtimesec=\"$runtime\" runtime=\"${runhour}:${runmin}:${runsec}\" result=\"complete\""
+
