@@ -1,24 +1,59 @@
 #!/bin/bash
-# 20170301 Kirby
+# 20170624 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
 
-# startup sleep for server farms sharing disk
-sleep $(( $RANDOM % 36000 ))
+# terminate script after $timeout seconds pass
+timeout=$(( $(date +"%s") + 86400 ))
+
 startepoch=$(date +%s)
+startsleep=$(( ( RANDOM * RANDOM + 1 ) % 18000 ))
+echo "starttime=\"$(date)\" startepoch=\"$startepoch\" startsleep=\"$startsleep\""
+sleep $startsleep
 
+##################################################
+function join_by {
+    local IFS="$1"
+    shift
+    echo "$*"
+}
 
+##################################################
+function gotoexit() {
+    local result=$1
+    endepoch=$(date +%s)
+    runtime=$(( endepoch - startepoch ))
+    runhour=$(( runtime / 3600 ))
+    runmin=0$(( ( runtime - ( runhour * 3600 )) / 60 ))
+    runmin=${runmin:$((${#runmin}-2)):${#runmin}}
+    runsec=0$(( ( runtime - ( runhour * 3600 )) % 60 ))
+    runsec=${runsec:$((${#runsec}-2)):${#runsec}}
+    echo "endtime=\"$(date)\" endepoch=\"$endepoch\" runtimesec=\"$runtime\" runtime=\"${runhour}:${runmin}:${runsec}\" result=\"$result\""
+}
+
+##################################################
+function timeoutcheck() {
+    local timeout=$1
+    if [[ "$(date +"%s")" -gt "$timeout" ]]
+    then
+        gotoexit "FAILED: Went over timeout seconds"
+        exit 1
+    fi  
+}
+
+##################################################
+# MAIN
+
+# yum/dnf uses python, which can conflict with Splunk's python
 unset PYTHONPATH
-export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/libexec
-export LD_LIBRARY_PATH=/lib64:/usr/lib64:/lib:/usr/lib
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/libexec:$PATH
+export LD_LIBRARY_PATH=/lib64:/usr/lib64:/lib:/usr/lib:$LD_LIBRARY_PATH
 
+declare -a notices
 
-oldIFS=$IFS
 IFS='
 '
-
-
 if which dnf >/dev/null 2>&1 || which yum >/dev/null 2>&1
 then
     if which dnf >/dev/null 2>&1
@@ -27,20 +62,16 @@ then
     else
         yum=yum
     fi
-    info="updater=\"$yum\""
     num=0
-    for line in $(/bin/$yum updateinfo|egrep -a 'notice\(s\)$')
+    for line in $($yum updateinfo|egrep -a 'notice\(s\)$')
     do
-        num=$(echo $line |awk '{print $1}')
-        type=$(echo $line |sed -e 's/.* [0-9]* \(.*\) notice.*/\1/'|sed -e 's/ /_/g')
-        info="$info $type=$num"
+        num=$(echo "$line" |awk '{print $1}')
+        type=$(echo "$line" |sed -e 's/.* [0-9]* \(.*\) notice.*/\1/'|sed -e 's/ /_/g')
+        notices+=($type=$num)
     done
-    if [ $num != 0 ]
-    then
-        echo $info
-    fi
+    alarm="$(join_by ' ' "${notices[@]}")"
     lastpatch=$($yum history |grep -i '| update ' |sed -e 's/.* \([0-9]*-[0-9]*-[0-9]*\) [0-9]*:[0-9]* .*/\1/' |head -1)
-    echo "updater=\"$yum\" lastpatchdate=\"$lastpatch\""
+    echo "updater=\"$yum\" lastpatchdate=\"$lastpatch\" $alarm"
 fi
 
 if which apt-get >/dev/null 2>&1
@@ -59,13 +90,5 @@ then
 fi
 
 
-
-endepoch=$(date +%s)
-runtime=$(( $endepoch - $startepoch ))
-runhour=$(( $runtime / 3600 ))
-runmin=0$(( ($runtime - ( $runhour * 3600 )) / 60 ))
-runmin=${runmin:$((${#runmin}-2)):${#runmin}}
-runsec=0$(( ($runtime - ( $runhour * 3600 )) % 60 ))
-runsec=${runsec:$((${#runsec}-2)):${#runsec}}
-echo "endtime=\"$(date)\" endepoch=\"$endepoch\" runtimesec=\"$runtime\" runtime=\"${runhour}:${runmin}:${runsec}\" result=\"complete\""
+gotoexit "completed"
 
