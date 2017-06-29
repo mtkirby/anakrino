@@ -30,7 +30,7 @@ DATA COLLECTION SCRIPTS:
     Things admins should look for:
     1) Any process that does not belong to a known rpm or dpkg could be from a rootkit
 
-6) sshkeylog.sh - Outputs to the anakrino-sshkeylog index.  This script will output sha256 and md5 hashes for the ssh keys and authorization keys for all local accounts.  This will help identify which keys can access which accounts.  If you enable verbose logging in sshd_config, it will log the fingerprint hash of the key that was used to authenticate.  Depending on your sshd version, it will output either md5 or sha256.  
+6) sshkeyfp.sh - Outputs to the anakrino-sshkeylog index.  This script will output sha256 and md5 hashes for the ssh keys and authorization keys for all local accounts.  This will help identify which keys can access which accounts.  If you enable verbose logging in sshd_config, it will log the fingerprint hash of the key that was used to authenticate.  Depending on your sshd version, it will output either md5 or sha256.  
 
 7) sudoerscheck.sh - Outputs to the anakrino-sudoers index.  This script will parse the sudoers configuration and output in key=value pairs.  If the user is a %group, it will append the members of that group.  It will alert to bad ownership/permissions on scripts.
     Things admins should look for:

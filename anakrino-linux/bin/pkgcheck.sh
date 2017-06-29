@@ -1,7 +1,7 @@
 #!/bin/bash
 # 20170624 Kirby
 
-if uname -n |egrep -q 'dev|test|lte|sys|cte'
+if uname -n |egrep -q 'dev|test|lte|sys|cte|\.dt0'
 then
     echo "NON-PCI SYSTEM"
     exit 0
