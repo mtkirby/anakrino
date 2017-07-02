@@ -108,10 +108,6 @@ do
     file="${homedir}/.ssh/authorized_keys"
     if [[ -f "$file" ]]
     then
-        if ! which base64 md5sum >/dev/null 2>&1
-        then
-            continue
-        fi
         for line in $(egrep -v '^$|^#' "$file" |egrep ".*-.* .*" |sort|uniq)
         do
             md5=''
