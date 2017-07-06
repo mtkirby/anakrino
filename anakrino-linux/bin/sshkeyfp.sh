@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170624 Kirby
+# 20170702 Kirby
 
 if ! which ssh-keygen >/dev/null 2>&1
 then
