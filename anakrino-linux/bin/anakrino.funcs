@@ -34,6 +34,7 @@ function gotoexit() {
     local read_bytes_per_sec
     local syscr
     local syscw
+    local vmrss
     endepoch=$(date +%s)
     runtime=$(( endepoch - startepoch ))
     runhour=$(( runtime / 3600 ))
@@ -46,11 +47,12 @@ function gotoexit() {
     cancelled_write_bytes=$(awk '/^cancelled_write_bytes:/ {print $2}' /proc/$$/io 2>/dev/null)
     syscr=$(awk '/^syscr:/ {print $2}' /proc/$$/io 2>/dev/null)
     syscw=$(awk '/^syscw:/ {print $2}' /proc/$$/io 2>/dev/null)
+    vmrss=$(awk '/^VmRSS:/ {print $2}' /proc/$$/status 2>/dev/null)
     if [[ $((endepoch - startepoch)) -ge 1 ]]
     then
         read_bytes_per_sec=$(( read_bytes / (endepoch - startepoch) ))
     fi
-    echo "endtime=\"$(date)\" endepoch=\"$endepoch\" runtimesec=\"$runtime\" runtime=\"${runhour}:${runmin}:${runsec}\" read_bytes_per_sec=\"$read_bytes_per_sec\" read_bytes=\"$read_bytes\" write_bytes=\"$write_bytes\" cancelled_write_bytes=\"$cancelled_write_bytes\" syscr=\"$syscr\" syscw=\"$syscw\" result=\"$result\""
+    echo "endtime=\"$(date)\" endepoch=\"$endepoch\" runtimesec=\"$runtime\" runtime=\"${runhour}:${runmin}:${runsec}\" read_bytes_per_sec=\"$read_bytes_per_sec\" read_bytes=\"$read_bytes\" write_bytes=\"$write_bytes\" cancelled_write_bytes=\"$cancelled_write_bytes\" syscr=\"$syscr\" syscw=\"$syscw\" vmrss=\"$vmrss kB\" result=\"$result\""
 }
 
 ##################################################
