@@ -4,10 +4,10 @@
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
 
-if [[ -f "$SPLUNK_HOME/apps/anakrino-linux/bin/anakrino.funcs" ]]
+if [[ -f "$SPLUNK_HOME/etc/apps/anakrino-linux/bin/anakrino.funcs" ]]
 then 
     # shellcheck disable=SC1090
-    . "$SPLUNK_HOME/apps/anakrino-linux/bin/anakrino.funcs" || exit 1
+    . "$SPLUNK_HOME/etc/apps/anakrino-linux/bin/anakrino.funcs" || exit 1
 elif [[ -f "anakrino.funcs" ]]
 then
     # shellcheck disable=SC1091
