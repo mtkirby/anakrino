@@ -1,5 +1,22 @@
 #!/bin/bash
-# 20170702 Kirby
+# 20170709 Kirby
+
+nice 20 $$ >/dev/null 2>&1
+ionice -c3 -p $$ >/dev/null 2>&1
+
+if [[ -f "$SPLUNK_HOME/apps/anakrino-linux/bin/anakrino.funcs" ]]
+then
+    # shellcheck disable=SC1090
+    . "$SPLUNK_HOME/apps/anakrino-linux/bin/anakrino.funcs" || exit 1
+elif [[ -f "anakrino.funcs" ]]
+then
+    # shellcheck disable=SC1091
+    . "anakrino.funcs" || exit 1
+else
+    echo "FATAL ERROR unable to find anakrino.funcs"
+    exit 1
+fi
+
 
 if ! which ssh-keygen >/dev/null 2>&1
 then
@@ -7,46 +24,12 @@ then
     exit 1
 fi
 
-nice 20 $$ >/dev/null 2>&1
-ionice -c3 -p $$ >/dev/null 2>&1
-
-# terminate script after $timeout seconds pass
-timeout=$(( $(date +"%s") + 86400 ))
 
 startepoch=$(date +%s)
 startsleep=$(( ( RANDOM * RANDOM + 1 ) % 18000 ))
 echo "starttime=\"$(date)\" startepoch=\"$startepoch\" startsleep=\"$startsleep\""
 sleep $startsleep
 
-##################################################
-function join_by {
-    local IFS="$1"
-    shift
-    echo "$*"
-}
-
-##################################################
-function gotoexit() {
-    local result=$1
-    endepoch=$(date +%s)
-    runtime=$(( endepoch - startepoch ))
-    runhour=$(( runtime / 3600 ))
-    runmin=0$(( ( runtime - ( runhour * 3600 )) / 60 ))
-    runmin=${runmin:$((${#runmin}-2)):${#runmin}}
-    runsec=0$(( ( runtime - ( runhour * 3600 )) % 60 ))
-    runsec=${runsec:$((${#runsec}-2)):${#runsec}}
-    echo "endtime=\"$(date)\" endepoch=\"$endepoch\" runtimesec=\"$runtime\" runtime=\"${runhour}:${runmin}:${runsec}\" result=\"$result\""
-}
-
-##################################################
-function timeoutcheck() {
-    local timeout=$1
-    if [[ "$(date +"%s")" -gt "$timeout" ]]
-    then
-        gotoexit "FAILED: Went over timeout seconds"
-        exit 1
-    fi  
-}
 
 ##################################################
 function do_fingerprint()
@@ -64,7 +47,7 @@ function do_fingerprint()
     if fingerprint=$(ssh-keygen -E md5 -l -f "$file" 2>/dev/null || ssh-keygen -l -f "$file")
     then
         local IFS=' ' fpa=($fingerprint)
-        IFS=$rnIFS
+        local IFS=$'\n'
         keysize=${fpa[0]}
         # sometimes there is a MD5: prefix and sometimes there isn't.
         # strip it if it exists and then add it.
@@ -95,9 +78,7 @@ function do_fingerprint()
 ##################################################
 # MAIN
 
-rnIFS='
-'
-IFS=$rnIFS
+IFS=$'\n'
 for homedir in $(cut -d':' -f 6 /etc/passwd |sort|uniq)
 do
     for file in $(grep -l 'PRIVATE KEY' "$homedir"/.ssh/* 2>/dev/null)
@@ -113,7 +94,7 @@ do
             md5=''
             sha256=''
             IFS=' ' aka=($line)
-            IFS=$rnIFS
+            IFS=$'\n'
             if which base64 md5sum >/dev/null 2>&1
             then
                 md5=MD5:$(echo "${aka[1]}" |base64 -d|md5sum |awk '{print $1}'|sed -e 's/\(..\)/:\1/g' |sed -e 's/^://')
@@ -133,5 +114,5 @@ do
 done
 
 
-gotoexit "completed"
+gotoexit "$startepoch" "completed"
 

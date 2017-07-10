@@ -1,9 +1,22 @@
 #!/bin/bash
-# 20170624 Kirby
-
+# 20170709 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
+
+if [[ -f "$SPLUNK_HOME/apps/anakrino-linux/bin/anakrino.funcs" ]]
+then
+    # shellcheck disable=SC1090
+    . "$SPLUNK_HOME/apps/anakrino-linux/bin/anakrino.funcs" || exit 1
+elif [[ -f "anakrino.funcs" ]]
+then
+    # shellcheck disable=SC1091
+    . "anakrino.funcs" || exit 1
+else
+    echo "FATAL ERROR unable to find anakrino.funcs"
+    exit 1
+fi
+
 
 # terminate script after $timeout seconds pass
 timeout=$(( $(date +"%s") + 86400 ))
@@ -14,42 +27,9 @@ echo "starttime=\"$(date)\" startepoch=\"$startepoch\" startsleep=\"$startsleep\
 sleep $startsleep
 
 ##################################################
-function join_by { 
-    local IFS="$1"
-    shift
-    echo "$*"
-}
-
-##################################################
-function gotoexit() {
-    local result=$1
-    endepoch=$(date +%s)
-    runtime=$(( endepoch - startepoch ))
-    runhour=$(( runtime / 3600 ))
-    runmin=0$(( ( runtime - ( runhour * 3600 )) / 60 ))
-    runmin=${runmin:$((${#runmin}-2)):${#runmin}}
-    runsec=0$(( ( runtime - ( runhour * 3600 )) % 60 ))
-    runsec=${runsec:$((${#runsec}-2)):${#runsec}}
-    echo "endtime=\"$(date)\" endepoch=\"$endepoch\" runtimesec=\"$runtime\" runtime=\"${runhour}:${runmin}:${runsec}\" result=\"$result\""
-}
-
-##################################################
-function timeoutcheck() {
-    local timeout=$1
-    if [[ "$(date +"%s")" -gt "$timeout" ]]
-    then
-        gotoexit "FAILED: Went over timeout seconds"
-        exit 1
-    fi  
-}
-
-##################################################
 # MAIN
 
-rnIFS='
-'
-cIFS=','
-IFS=$rnIFS
+IFS=$'\n'
 
 #
 # find all the includes
@@ -183,7 +163,7 @@ do
     
         # commands
         cmnd=$(echo "$line" |cut -d'=' -f2|cut -d':' -f2-|cut -d')' -f2- |sed -e 's/^\s*//g')
-        IFS=$cIFS
+        IFS=','
         cmnd_alias_array=()
         cmnds=()
         for cmnd_element in $cmnd
@@ -204,77 +184,29 @@ do
                 cmnds+=($cmnd_chomp)
             fi
         done
-        IFS=$rnIFS
+        IFS=$'\n'
         cmnd_alias=$(echo "${cmnd_alias_array[@]}" |sed -e 's/\s*$//g')
-    
     
         # check perms/owners of @cmnds
         for file in ${cmnds[*]}
         do
-            # this has caused issues
+            # aliases have caused issues
             unset "$file" >/dev/null 2>&1
             unalias "$file" >/dev/null 2>&1
     
             which "$file" >/dev/null 2>&1 || continue
             file=$(which "$file")
-    
-            alert=()
-            trigger=0
-            alarm=''
-    
-            # check if symlink
-            if stat -c '%N' "$file" 2>/dev/null |grep -q ' -> ' >/dev/null 2>&1
-            then
-                realfile=$(stat -c '%N' "$file" 2>/dev/null |sed -e "s/.* -> '\(.*\)'/\1/")
-                if [[ "${realfile:0:1}" != "/" ]]
-                then
-                    dir=$(which "$file")
-                    file="${dir%/*}/$realfile"
-                fi  
-            fi
-            filemode=$(stat -c "%a" "$file")
-            fileowner=$(stat -c "%U" "$file")
-            otherperm=$(echo "$filemode" |sed -e 's/.*.\(.\)$/\1/g')
-            groupperm=$(echo "$filemode" |sed -e 's/.*\(.\).$/\1/g')
-    
-            if [[ "$runas" != "$fileowner" ]] \
-            && [[ "$fileowner" != "root" ]]
-            then
-                alert+=("Sudo runas and file owner mismatch on $file owner is $fileowner.")
-                trigger=1
-            fi
-            if [[ "$otherperm" == '2' ]] \
-            || [[ "$otherperm" == '3' ]] \
-            || [[ "$otherperm" == '6' ]] \
-            || [[ "$otherperm" == '7' ]]
-            then
-                alert+=("Permissions allow world write on $file.")
-                trigger=1
-            fi
-            if [[ "$groupperm" == '2' ]] \
-            || [[ "$groupperm" == '3' ]] \
-            || [[ "$groupperm" == '6' ]] \
-            || [[ "$groupperm" == '7' ]]
-            then
-                alert+=("Permissions allow group write on $file.")
-                trigger=1
-            fi
-    
-            if [[ $trigger -eq 1 ]]
-            then
-                alarm="alarm=\"$(join_by ' ' "${alert[@]}")\""
-            fi
-    
-    
+
+            printfileinfo "$file" "$runas" "Runas user" "user=\"$user\" user_alias=\"$user_alias\" hosts=\"$hosts\" hosts_alias=\"$hosts_alias\" runas=\"$runas\" runas_alias=\"$runas_alias\" auth=\"$auth\" cmnd=\"$cmnd\" cmnd_alias=\"$cmnd_alias\""
         done
     
     
         #echo $line
-        echo "user=\"$user\" user_alias=\"$user_alias\" hosts=\"$hosts\" hosts_alias=\"$hosts_alias\" runas=\"$runas\" runas_alias=\"$runas_alias\" auth=\"$auth\" cmnd=\"$cmnd\" cmnd_alias=\"$cmnd_alias\" $alarm"
+        echo "user=\"$user\" user_alias=\"$user_alias\" hosts=\"$hosts\" hosts_alias=\"$hosts_alias\" runas=\"$runas\" runas_alias=\"$runas_alias\" auth=\"$auth\" cmnd=\"$cmnd\" cmnd_alias=\"$cmnd_alias\""
         
-        timeoutcheck "$timeout"
-        sleep $(( ( RANDOM * RANDOM + 1 ) % 10 + 10 ))
+        timeoutcheck "$timeout" "$startepoch"
+        sleep $(( ( RANDOM * RANDOM + 1 ) % 30 + 30 ))
     done
 done
 
-gotoexit "completed"
+gotoexit "$startepoch" "completed"

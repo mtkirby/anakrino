@@ -1,0 +1,155 @@
+#!/bin/bash
+# 20170709 Kirby
+
+if [[ ${BASH_VERSINFO[0]} -lt 4 ]]
+then
+    echo "Bash is too old for Anakrino"
+    exit 1
+fi
+
+unset PYTHONPATH
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin:$PATH
+export LD_LIBRARY_PATH=/lib64:/usr/lib64:/lib:/usr/lib:/usr/lib32:/lib32:$LD_LIBRARY_PATH
+
+
+##################################################
+function join_by {
+    local IFS="$1"
+    shift
+    echo "$*"
+}
+
+##################################################
+function gotoexit() {
+    local startepoch=$1
+    local result=$2
+    local endepoch
+    local runtime
+    local runhour
+    local runmin
+    local runsec
+    local read_bytes
+    local write_bytes
+    local cancelled_write_bytes
+    local read_bytes_per_sec
+    local syscr
+    local syscw
+    endepoch=$(date +%s)
+    runtime=$(( endepoch - startepoch ))
+    runhour=$(( runtime / 3600 ))
+    runmin=0$(( ( runtime - ( runhour * 3600 )) / 60 ))
+    runmin=${runmin:$((${#runmin}-2)):${#runmin}}
+    runsec=0$(( ( runtime - ( runhour * 3600 )) % 60 ))
+    runsec=${runsec:$((${#runsec}-2)):${#runsec}}
+    read_bytes=$(awk '/^read_bytes:/ {print $2}' /proc/$$/io 2>/dev/null)
+    write_bytes=$(awk '/^write_bytes:/ {print $2}' /proc/$$/io 2>/dev/null)
+    cancelled_write_bytes=$(awk '/^cancelled_write_bytes:/ {print $2}' /proc/$$/io 2>/dev/null)
+    syscr=$(awk '/^syscr:/ {print $2}' /proc/$$/io 2>/dev/null)
+    syscw=$(awk '/^syscw:/ {print $2}' /proc/$$/io 2>/dev/null)
+    if [[ $((endepoch - startepoch)) -ge 1 ]]
+    then
+        read_bytes_per_sec=$(( read_bytes / (endepoch - startepoch) ))
+    fi
+    echo "endtime=\"$(date)\" endepoch=\"$endepoch\" runtimesec=\"$runtime\" runtime=\"${runhour}:${runmin}:${runsec}\" read_bytes_per_sec=\"$read_bytes_per_sec\" read_bytes=\"$read_bytes\" write_bytes=\"$write_bytes\" cancelled_write_bytes=\"$cancelled_write_bytes\" syscr=\"$syscr\" syscw=\"$syscw\" result=\"$result\""
+}
+
+##################################################
+function timeoutcheck() {
+    local timeout=$1
+    local startepoch=$2
+    if [[ "$(date +"%s")" -gt "$timeout" ]]
+    then
+        gotoexit "$startepoch" "FAILED: Went over timeout seconds"
+        exit 1
+    fi  
+}
+
+##################################################
+function printfileinfo() {
+    local file=$1
+    local checkowner=$2
+    local checkownerdesc=$3
+    local extrainfo=$4
+    local alert=()
+    local alarm
+    local octmode
+    local filemode
+    local fileowner
+    local otherperm
+    local groupperm
+    local mountpoint
+    local fstype
+    local sha1sum
+    octmode=$(stat -c "%a" "$file")
+    filemode=$(stat -c "%A" "$file")
+    fileowner=$(stat -c "%U" "$file")
+    otherperm=${octmode:$((${#octmode}-1)):1}
+    groupperm=${octmode:$((${#octmode}-2)):1}
+    mountpoint=$(stat -c "%m" "$file")
+    fstype=$(stat --file-system -c "%T" "$file")
+    file=$(readlink -f "$file")
+
+    if [[ ! -f "$file" ]]
+    then
+        echo "FILE $file DISAPPEARED"
+        return 1
+    fi
+
+    if [[ "$checkowner" != "$fileowner" ]] \
+    && [[ "$fileowner" != "root" ]] \
+    && [[ -n "$checkowner" ]]
+    then
+        alert+=("$checkownerdesc and file owner mismatch. ")
+    fi
+    if [[ "$otherperm" == '2' ]] \
+    || [[ "$otherperm" == '3' ]] \
+    || [[ "$otherperm" == '6' ]] \
+    || [[ "$otherperm" == '7' ]]
+    then
+        alert+=("Permissions allow world write. ")
+    fi
+    if [[ "$groupperm" == '2' ]] \
+    || [[ "$groupperm" == '3' ]] \
+    || [[ "$groupperm" == '6' ]] \
+    || [[ "$groupperm" == '7' ]]
+    then
+        alert+=("Permissions allow group write. ")
+    fi
+
+    if [[ ${#alert} -ge 1 ]]
+    then
+        alarm="alarm=\"$(join_by ' ' "${alert[@]}")\""
+    fi
+
+    if which sha1sum >/dev/null 2>&1; then
+        sha1sum=$(sha1sum "$file" |awk '{print $1}')
+    elif which openssl >/dev/null 2>&1; then
+        sha1sum=$(openssl sha1 "$file" |awk '{print $2}')
+    else
+        sha1sum="unknown"
+    fi  
+
+    echo "file=\"$file\" fileowner=\"$fileowner\" filemode=\"$filemode\" octmode=\"$octmode\" mountpoint=\"$mountpoint\" fstype=\"$fstype\" checkowner=\"$checkowner\" checkownerdesc=\"$checkownerdesc\" sha1sum=\"$sha1sum\" $extrainfo $alarm"
+}
+
+
+##################################################
+function dosleep() {
+    local totalcount=$1
+    local currcount=$2
+    local span=$3
+    local sleep
+    local avgsleep
+
+    if [[ "$totalcount" -gt "$span" ]]
+    then
+        echo "Math error in dosleep.  $totalcount is greater than $span. Defaulting to 10 minute random."
+        sleep=$(( ( RANDOM * RANDOM + 1 ) % 600 ))
+        #echo "$currcount / $totalcount sleep $sleep"
+    else
+        avgsleep=$(( span / totalcount ))
+        sleep=$(( avgsleep + ( RANDOM % ( avgsleep / 3 ) ) - ( RANDOM % ( avgsleep / 3 ) ) ))
+        #echo "$currcount / $totalcount sleep $sleep avg $avgsleep"
+    fi
+    sleep $sleep >/dev/null 2>&1
+}

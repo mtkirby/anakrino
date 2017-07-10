@@ -1,18 +1,28 @@
 #!/bin/bash
-# 20170624 Kirby
+# 20170709 Kirby
+
+nice 20 $$ >/dev/null 2>&1
+ionice -c3 -p $$ >/dev/null 2>&1
+
+if [[ -f "$SPLUNK_HOME/apps/anakrino-linux/bin/anakrino.funcs" ]]
+then
+    # shellcheck disable=SC1090
+    . "$SPLUNK_HOME/apps/anakrino-linux/bin/anakrino.funcs" || exit 1
+elif [[ -f "anakrino.funcs" ]]
+then
+    # shellcheck disable=SC1091
+    . "anakrino.funcs" || exit 1
+else
+    echo "FATAL ERROR unable to find anakrino.funcs"
+    exit 1
+fi
+
 
 if uname -n |egrep -q 'dev|test|lte|sys|cte|\.dt0'
 then
     echo "NON-PCI SYSTEM"
     exit 0
 fi
-
-renice 20 $$ >/dev/null 2>&1
-ionice -c3 -p $$ >/dev/null 2>&1
-
-dIFS=$IFS
-nlIFS='
-'
 
 
 # terminate script after $timeout seconds pass
@@ -25,12 +35,13 @@ startepoch=$(date +%s)
 echo "starttime=\"$(date)\" startepoch=\"$startepoch\" startsleep=\"$startsleep\""
 sleep $startsleep
 
-##################################################
-function join_by { 
-    local IFS="$1"
-    shift
-    echo "$*"
-}
+# make sure dosleep is working
+dosleep 1 1 10
+if [[ "(($(date +%s) - startepoch))" -lt 5 ]]
+then
+    echo "FATAL ERROR dosleep function is disabled."
+    exit 1
+fi
 
 ##################################################
 function rpmcheck() {
@@ -52,7 +63,7 @@ function rpmcheck() {
         return 1
     fi
 
-    IFS=$nlIFS
+    local IFS=$'\n'
     for line in $(rpm -V --nodeps --nomtime "$pkg")
     do
         file="${line##* }"
@@ -90,7 +101,6 @@ function rpmcheck() {
             echo "pkg=\"$pkg\" attr=\"$attr\" file=\"$file\" comments=\"$flatcomments\""
         fi
     done
-    IFS=$dIFS
 }
 
 ##################################################
@@ -108,7 +118,7 @@ function dpkgcheck() {
         return 1
     fi
 
-    IFS=$nlIFS
+    local IFS=$'\n'
     for line in $(dpkg -V "$pkg")
     do
         file="${line##* }"
@@ -123,45 +133,7 @@ function dpkgcheck() {
             echo "pkg=\"$pkg\" attr=\"$attr\" file=\"$file\" comments=\"$flatcomments\""
         fi
     done
-    IFS=$dIFS
 
-}
-
-##################################################
-function dosleep() {
-    local pkgcount=$1
-    local count=$2
-    local sleep=''
-    local avgsleep=''
-
-    # 518400 = 6 days
-    avgsleep=$(( 518400 / pkgcount ))
-    sleep=$(( avgsleep + ( RANDOM % ( avgsleep / 3 ) ) - ( RANDOM % ( avgsleep / 3 ) ) ))
-    #echo "$count / $pkgcount sleep $sleep avg $avgsleep"
-    sleep $sleep >/dev/null 2>&1
-}
-
-##################################################
-function gotoexit() {
-    local result=$1
-    endepoch=$(date +%s)
-    runtime=$(( endepoch - startepoch ))
-    runhour=$(( runtime / 3600 ))
-    runmin=0$(( (runtime - ( runhour * 3600 )) / 60 ))
-    runmin=${runmin:$((${#runmin}-2)):${#runmin}}
-    runsec=0$(( (runtime - ( runhour * 3600 )) % 60 ))
-    runsec=${runsec:$((${#runsec}-2)):${#runsec}}
-    echo "endtime=\"$(date)\" endepoch=\"$endepoch\" runtimesec=\"$runtime\" runtime=\"${runhour}:${runmin}:${runsec}\" result=\"$result\""
-}
-
-##################################################
-function timeoutcheck() {
-    local timeout=$1
-    if [[ "$(date +"%s")" -gt "$timeout" ]]
-    then
-        gotoexit "FAILED: Went over $timeout seconds"
-        exit 1
-    fi
 }
 
 ##################################################
@@ -174,7 +146,7 @@ function lagkill() {
     local lag=$(( lagstop - lagstart ))
     if [[ $lag -ge 15 ]]
     then
-        gotoexit "FAILED: lagged out on $pkg"
+        gotoexit "$startepoch" "FAILED: lagged out on $pkg"
         exit 1
     fi
 }
@@ -188,7 +160,7 @@ if which rpm >/dev/null 2>&1
 then
     declare -a rpms
     # ignore kernel packages on the first run.  
-    for pkg in $(rpm -qa |egrep -v 'logstash|clamav-data|emacs-common|\-devel\-|\-headers\-|^kernel-|fonts|logos|theme')
+    for pkg in $(rpm -qa |egrep -v 'splunk|logstash|clamav-data|emacs-common|\-devel\-|\-headers\-|^kernel-|fonts|logos|theme')
     do
         rpms+=("$pkg")
     done
@@ -204,13 +176,13 @@ then
     then
         for pkg in ${rpms[*]}
         do
-            count=$((count + 1))
+            ((count++))
             lagstart=$(date +%s)
             rpmcheck "$pkg"
             lagstop=$(date +%s)
             lagkill "$lagstart" "$lagstop" "$pkg"
-            timeoutcheck "$timeout"
-            dosleep "$pkgcount" "$count"
+            timeoutcheck "$timeout" "$startepoch"
+            dosleep "$pkgcount" "$count" 518400
         done
     else
         echo "pkgcount for rpm failed"
@@ -240,13 +212,13 @@ then
     then
         for pkg in ${dpkgs[*]}
         do
-            count=$((count + 1))
+            ((count++))
             lagstart=$(date +%s)
             dpkgcheck "$pkg"
             lagstop=$(date +%s)
             lagkill "$lagstart" "$lagstop" "$pkg"
-            timeoutcheck "$timeout"
-            dosleep "$pkgcount" "$count"
+            timeoutcheck "$timeout" "$startepoch"
+            dosleep "$pkgcount" "$count" 518400
         done
     else
         echo "pkgcount for dpkg failed"
@@ -254,4 +226,4 @@ then
     totalcount=$(( totalcount + count ))
 fi
 
-gotoexit "completed pkgcount=$totalcount"
+gotoexit "$startepoch" "completed pkgcount=$totalcount"

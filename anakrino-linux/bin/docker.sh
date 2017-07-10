@@ -1,13 +1,21 @@
 #!/bin/bash
-# 20170628 Kirby
+# 20170709 Kirby
 
 renice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
 
-export dIFS=$IFS
-export rnIFS=$'\r\n'
-export tIFS=$'\t'
-
+if [[ -f "$SPLUNK_HOME/apps/anakrino-linux/bin/anakrino.funcs" ]]
+then
+    # shellcheck disable=SC1090
+    . "$SPLUNK_HOME/apps/anakrino-linux/bin/anakrino.funcs" || exit 1
+elif [[ -f "anakrino.funcs" ]]
+then
+    # shellcheck disable=SC1091
+    . "anakrino.funcs" || exit 1
+else
+    echo "FATAL ERROR unable to find anakrino.funcs"
+    exit 1
+fi
 
 which docker >/dev/null 2>&1 || exit 0
 pgrep -x docker >/dev/null 2>&1 || exit 0
@@ -18,19 +26,13 @@ startepoch=$(date +%s)
 echo "starttime=\"$(date)\" startepoch=\"$startepoch\" startsleep=\"$startsleep\""
 sleep $startsleep
 
-
-##################################################
-function gotoexit() {
-    local result=$1
-    endepoch=$(date +%s)
-    runtime=$(( endepoch - startepoch ))
-    runhour=$(( runtime / 3600 ))
-    runmin=0$(( (runtime - ( runhour * 3600 )) / 60 ))
-    runmin=${runmin:$((${#runmin}-2)):${#runmin}}
-    runsec=0$(( (runtime - ( runhour * 3600 )) % 60 ))
-    runsec=${runsec:$((${#runsec}-2)):${#runsec}}
-    echo "endtime=\"$(date)\" endepoch=\"$endepoch\" runtimesec=\"$runtime\" runtime=\"${runhour}:${runmin}:${runsec}\" result=\"$result\""
-}
+# make sure dosleep is working
+dosleep 1 1 10
+if [[ "(($(date +%s) - startepoch))" -lt 5 ]]
+then
+    echo "FATAL ERROR dosleep function is disabled."
+    exit 1
+fi
 
 
 ##################################################
@@ -38,7 +40,7 @@ function gotoexit() {
 
 
 IFS='.' dockerversion=($(docker version |awk '/^Server version:/ {print $3}'))
-IFS=$rnIFS
+IFS=$'\n'
 if [[ ${dockerversion[0]} -le 1 ]] \
 && [[ ${dockerversion[1]} -le 7 ]]
 then
@@ -55,10 +57,10 @@ then
 else
     for line in $(docker ps --no-trunc --format '{{.Names}}\t{{.Image}}\t{{.Command}}\t{{.Ports}}'|sed -e 's/"//g')
     do
-        IFS=$tIFS
+        IFS=$'\t'
         arr=($line)
         echo "name=\"${arr[0]}\" image=\"${arr[1]}\" command=\"${arr[2]}\" ports=\"${arr[3]}\""
-        IFS=$rnIFS
+        IFS=$'\n'
     done
 fi
 
@@ -72,5 +74,4 @@ do
     echo "dockerproxyargs=\"$line\""
 done
 
-
-gotoexit "completed"
+gotoexit "$startepoch" "completed"

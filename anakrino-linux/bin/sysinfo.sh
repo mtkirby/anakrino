@@ -1,41 +1,28 @@
 #!/bin/bash
-# 20170701 Kirby
+# 20170709 Kirby
 
-renice 20 $$ >/dev/null 2>&1
+nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
 
-export dIFS=$IFS
-export rnIFS=$'\r\n'
-export tIFS=$'\t'
+if [[ -f "$SPLUNK_HOME/apps/anakrino-linux/bin/anakrino.funcs" ]]
+then
+    # shellcheck disable=SC1090
+    . "$SPLUNK_HOME/apps/anakrino-linux/bin/anakrino.funcs" || exit 1
+elif [[ -f "anakrino.funcs" ]]
+then
+    # shellcheck disable=SC1091
+    . "anakrino.funcs" || exit 1
+else
+    echo "FATAL ERROR unable to find anakrino.funcs"
+    exit 1
+fi
 
 
 # startup sleep for server farms sharing disk
-startsleep=$(( ( RANDOM * RANDOM + 1 ) % 300 ))
+startsleep=$(( ( RANDOM * RANDOM + 1 ) % 1800 ))
 startepoch=$(date +%s)
-#echo "starttime=\"$(date)\" startepoch=\"$startepoch\" startsleep=\"$startsleep\""
+echo "starttime=\"$(date)\" startepoch=\"$startepoch\" startsleep=\"$startsleep\""
 sleep $startsleep
-
-
-##################################################
-function gotoexit() {
-    local result=$1
-    endepoch=$(date +%s)
-    runtime=$(( endepoch - startepoch ))
-    runhour=$(( runtime / 3600 ))
-    runmin=0$(( (runtime - ( runhour * 3600 )) / 60 ))
-    runmin=${runmin:$((${#runmin}-2)):${#runmin}}
-    runsec=0$(( (runtime - ( runhour * 3600 )) % 60 ))
-    runsec=${runsec:$((${#runsec}-2)):${#runsec}}
-    #echo "endtime=\"$(date)\" endepoch=\"$endepoch\" runtimesec=\"$runtime\" runtime=\"${runhour}:${runmin}:${runsec}\" result=\"$result\""
-}
-
-##################################################
-function join_by {
-    local IFS="$1"
-    shift
-    echo "$*"
-}
-
 
 ##################################################
 # MAIN
@@ -50,6 +37,7 @@ do
     then
         id_arr+=("$id=\"$id_data\"")
     fi
+    sleep 1
 done
 
 if [[ -f /etc/os-release ]]
@@ -61,6 +49,7 @@ then
             id=$(echo "os-$id" | tr '[:upper:]' '[:lower:]')
             id_arr+=("$id=\"$id_data\"")
         fi
+        sleep 1
     done
 elif [[ -f /etc/redhat-release ]]
 then
@@ -78,6 +67,7 @@ do
     id_data=$(egrep "^$id" /proc/cpuinfo |cut -d':' -f2|head -1|sed -e 's/^ //')
     id=${id/ /_}
     id_arr+=("$id=\"$id_data\"")
+    sleep 1
 done
 
 
@@ -110,10 +100,11 @@ then
         fi
         id_arr+=("$id=\"$id_data\"")
     done
+    sleep 1
 fi
 
 oneline=$(join_by ' ' "${id_arr[@]}")
 echo "$oneline"
 
 
-gotoexit "completed"
+gotoexit "$startepoch" "completed"
