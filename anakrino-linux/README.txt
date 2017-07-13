@@ -45,6 +45,7 @@ DATA COLLECTION SCRIPTS:
     1) There will be false positives.  Look for mystery executables.
 11) sysinfo.sh - Outputs to the anakrino index with the sourcetype sysinfo.  This will output OS and hardware information
 12) patchinfo.sh - Outputs to the anakrino index with sourcetype patchinfo.  This script will show a count of missing security patches.
+13) socketlist.sh - Outputs to the anakrino index with the sourcetype socketlist.  This script will show what programs, and users, that have listening sockets.
 
 
 REPORT SCRIPTS:

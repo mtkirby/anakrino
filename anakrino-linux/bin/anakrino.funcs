@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170709 Kirby
+# 20170712 Kirby
 
 if [[ ${BASH_VERSINFO[0]} -lt 4 ]]
 then
@@ -20,9 +20,10 @@ function join_by {
 }
 
 ##################################################
-function gotoexit() {
+function printexitstats() {
     local startepoch=$1
-    local result=$2
+    local startsleep=$2
+    local result=$3
     local endepoch
     local runtime
     local runhour
@@ -31,12 +32,22 @@ function gotoexit() {
     local read_bytes
     local write_bytes
     local cancelled_write_bytes
-    local read_bytes_per_sec
+    local avg_read_bytes_per_sec
     local syscr
     local syscw
     local vmrss
+    local uptime
+    local utime
+    local stime
+    local cutime
+    local cstime
+    local hertz
+    local total_ticks
+    local seconds
+    local cpu_usage
+
     endepoch=$(date +%s)
-    runtime=$(( endepoch - startepoch ))
+    runtime=$(( endepoch - startepoch - startsleep ))
     runhour=$(( runtime / 3600 ))
     runmin=0$(( ( runtime - ( runhour * 3600 )) / 60 ))
     runmin=${runmin:$((${#runmin}-2)):${#runmin}}
@@ -50,18 +61,28 @@ function gotoexit() {
     vmrss=$(awk '/^VmRSS:/ {print $2}' /proc/$$/status 2>/dev/null)
     if [[ $((endepoch - startepoch)) -ge 1 ]]
     then
-        read_bytes_per_sec=$(( read_bytes / (endepoch - startepoch) ))
+        avg_read_bytes_per_sec=$(( read_bytes / runtime ))
     fi
-    echo "endtime=\"$(date)\" endepoch=\"$endepoch\" runtimesec=\"$runtime\" runtime=\"${runhour}:${runmin}:${runsec}\" read_bytes_per_sec=\"$read_bytes_per_sec\" read_bytes=\"$read_bytes\" write_bytes=\"$write_bytes\" cancelled_write_bytes=\"$cancelled_write_bytes\" syscr=\"$syscr\" syscw=\"$syscw\" vmrss=\"$vmrss kB\" result=\"$result\""
+    uptime=$(awk '{print $1}' /proc/uptime 2>/dev/null|cut -d'.' -f1)
+    utime=$(awk '{print $14}' /proc/$$/stat 2>/dev/null)
+    stime=$(awk '{print $15}' /proc/$$/stat 2>/dev/null)
+    cutime=$(awk '{print $16}' /proc/$$/stat 2>/dev/null)
+    cstime=$(awk '{print $17}' /proc/$$/stat 2>/dev/null)
+    total_ticks=$((utime + stime + cutime + cstime))
+    hertz=$(getconf CLK_TCK 2>/dev/null) || hertz=100
+    cpu_usage=$(awk "BEGIN {printf(\"%.3f\", 100 * (($total_ticks / $hertz) / $runtime))}")
+
+    echo "endtime=\"$(date)\" endepoch=\"$endepoch\" runtimesec=\"$runtime\" runtime=\"${runhour}:${runmin}:${runsec}\" avg_read_bytes_per_sec=\"$avg_read_bytes_per_sec\" read_bytes=\"$read_bytes\" write_bytes=\"$write_bytes\" cancelled_write_bytes=\"$cancelled_write_bytes\" syscr=\"$syscr\" syscw=\"$syscw\" vmrss=\"$vmrss kB\" cpu_usage=\"$cpu_usage\" result=\"$result\""
 }
 
 ##################################################
 function timeoutcheck() {
     local timeout=$1
     local startepoch=$2
+    local startsleep=$3
     if [[ "$(date +"%s")" -gt "$timeout" ]]
     then
-        gotoexit "$startepoch" "FAILED: Went over timeout seconds"
+        printexitstats "$startepoch" "$startsleep" "FAILED: Went over timeout seconds"
         exit 1
     fi  
 }

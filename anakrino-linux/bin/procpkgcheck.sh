@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170624 Kirby
+# 20170712 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -43,6 +43,9 @@ proccount=0
 chrootcount=0
 for pid in /proc/[0-9]*
 do
+    ((proccount++))
+    dosleep "$totalproccount" "$proccount" 84600
+
     # Check to see if exe file exists.
     # Sometimes a program will create a temporary script and delete it while running.
     file=$(stat -c '%N' "$pid/exe" 2>/dev/null |grep ' -> '|sed -e "s/.*-> .\(\/.*\).$/\1/")
@@ -76,10 +79,8 @@ do
         loginuid=$(cat "$pid"/loginuid)
         printfileinfo "$file" "$procowner" "Process owner" "pid=\"${pid##*/}\" procowner=\"$procowner\" procuid=\"$procuid\" loginuid=\"$loginuid\""   
     fi
-    ((proccount++))
-    dosleep "$totalproccount" "$proccount" 84600
-    timeoutcheck "$timeout" "$startepoch"
+    timeoutcheck "$timeout" "$startepoch" "$startsleep"
 done
 
-gotoexit "$startepoch" "completed totalproccount=$totalproccount chrootcount=$chrootcount"
+printexitstats "$startepoch" "$startsleep" "completed totalproccount=$totalproccount chrootcount=$chrootcount"
 

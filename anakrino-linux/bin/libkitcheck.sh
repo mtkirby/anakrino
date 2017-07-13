@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170709 Kirby
+# 20170712 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -103,9 +103,9 @@ do
             libseen["$libfile"]=1
         fi
         dosleep "$libtotalcount" "${#libseen[@]}" 84600
-        timeoutcheck "$timeout" "$startepoch"
+        timeoutcheck "$timeout" "$startepoch" "$startsleep"
     done
 done
 
-gotoexit "$startepoch" "completed libschecked=${#libseen[@]} dupskip=$dupskip chrootcount=$chrootcount"
+printexitstats "$startepoch" "$startsleep" "completed libschecked=${#libseen[@]} dupskip=$dupskip chrootcount=$chrootcount"
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170709 Kirby
+# 20170712 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -204,9 +204,9 @@ do
         #echo $line
         echo "user=\"$user\" user_alias=\"$user_alias\" hosts=\"$hosts\" hosts_alias=\"$hosts_alias\" runas=\"$runas\" runas_alias=\"$runas_alias\" auth=\"$auth\" cmnd=\"$cmnd\" cmnd_alias=\"$cmnd_alias\""
         
-        timeoutcheck "$timeout" "$startepoch"
+        timeoutcheck "$timeout" "$startepoch" "$startsleep"
         sleep $(( ( RANDOM * RANDOM + 1 ) % 30 + 30 ))
     done
 done
 
-gotoexit "$startepoch" "completed"
+printexitstats "$startepoch" "$startsleep" "completed"

@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170709 Kirby
+# 20170712 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -146,7 +146,7 @@ function lagkill() {
     local lag=$(( lagstop - lagstart ))
     if [[ $lag -ge 15 ]]
     then
-        gotoexit "$startepoch" "FAILED: lagged out on $pkg"
+        printexitstats "$startepoch" "$startsleep" "FAILED: lagged out on $pkg"
         exit 1
     fi
 }
@@ -181,7 +181,7 @@ then
             rpmcheck "$pkg"
             lagstop=$(date +%s)
             lagkill "$lagstart" "$lagstop" "$pkg"
-            timeoutcheck "$timeout" "$startepoch"
+            timeoutcheck "$timeout" "$startepoch" "$startsleep"
             dosleep "$pkgcount" "$count" 518400
         done
     else
@@ -217,7 +217,7 @@ then
             dpkgcheck "$pkg"
             lagstop=$(date +%s)
             lagkill "$lagstart" "$lagstop" "$pkg"
-            timeoutcheck "$timeout" "$startepoch"
+            timeoutcheck "$timeout" "$startepoch" "$startsleep"
             dosleep "$pkgcount" "$count" 518400
         done
     else
@@ -226,4 +226,4 @@ then
     totalcount=$(( totalcount + count ))
 fi
 
-gotoexit "$startepoch" "completed pkgcount=$totalcount"
+printexitstats "$startepoch" "$startsleep" "completed pkgcount=$totalcount"

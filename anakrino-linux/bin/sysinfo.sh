@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170709 Kirby
+# 20170712 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -107,4 +107,4 @@ oneline=$(join_by ' ' "${id_arr[@]}")
 echo "$oneline"
 
 
-gotoexit "$startepoch" "completed"
+printexitstats "$startepoch" "$startsleep" "completed"

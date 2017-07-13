@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170709 Kirby
+# 20170712 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -61,7 +61,7 @@ do
     fi
     ((modcount++))
     dosleep "$totalmodcount" "$modcount" 518400
-    timeoutcheck "$timeout" "$startepoch"
+    timeoutcheck "$timeout" "$startepoch" "$startsleep"
 done
 
-gotoexit "$startepoch" "completed modcount=$modcount"
+printexitstats "$startepoch" "$startsleep" "completed modcount=$modcount"

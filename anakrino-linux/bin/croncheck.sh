@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170709 Kirby
+# 20170712 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -49,8 +49,8 @@ for tab in /var/spool/cron/*; do
         printfileinfo "$exe" "$username" "Cron user"
 
         sleep $(( ( RANDOM * RANDOM + 1 ) % 30 + 30 ))
-        timeoutcheck "$timeout" "$startepoch"
+        timeoutcheck "$timeout" "$startepoch" "$startsleep"
     done
 done
 
-gotoexit "$startepoch" "completed"
+printexitstats "$startepoch" "$startsleep" "completed"

@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170709 Kirby
+# 20170712 Kirby
 
 renice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -74,4 +74,4 @@ do
     echo "dockerproxyargs=\"$line\""
 done
 
-gotoexit "$startepoch" "completed"
+printexitstats "$startepoch" "$startsleep" "completed"

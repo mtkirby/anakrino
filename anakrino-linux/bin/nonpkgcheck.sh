@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170709 Kirby
+# 20170712 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -135,9 +135,9 @@ do
             printfileinfo "$file" "" "" ""
         fi
     done
-    timeoutcheck "$timeout" "$startepoch"
+    timeoutcheck "$timeout" "$startepoch" "$startsleep"
     dosleep "$totaldircount" "$dircount" 518400
 done
 
-gotoexit "$startepoch" "completed dircount=$dircount filecount=$filecount checkcount=$checkcount pkgcount=$pkgcount"
+printexitstats "$startepoch" "$startsleep" "completed dircount=$dircount filecount=$filecount checkcount=$checkcount pkgcount=$pkgcount"
 

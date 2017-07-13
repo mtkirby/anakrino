@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170709 Kirby
+# 20170712 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -93,8 +93,8 @@ do
 
     echo "username=\"$username\" shell=\"$shell\" pwageepoch=\"$pwageepoch\" pwagedate=\"$pwagedate\" pwexpiredate=\"$pwexpiredate\" haspw=\"$haspw\" hassshkey=\"$hassshkey\""
 
-    timeoutcheck "$timeout" "$startepoch"
+    timeoutcheck "$timeout" "$startepoch" "$startsleep"
 done
 
 
-gotoexit "$startepoch" "completed usercount=$usercount"
+printexitstats "$startepoch" "$startsleep" "completed usercount=$usercount"
