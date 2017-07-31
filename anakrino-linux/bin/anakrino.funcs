@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170730 Kirby
+# 20170731 Kirby
 
 if [[ ${BASH_VERSINFO[0]} -lt 4 ]]
 then
@@ -111,19 +111,16 @@ function printfileinfo() {
     octmode=$(stat -c "%a" "$file")
     filemode=$(stat -c "%A" "$file")
     fileowner=$(stat -c "%U" "$file")
+    filesize=$(stat -c "%s" "$file")
     otherperm=${octmode:$((${#octmode}-1)):1}
     groupperm=${octmode:$((${#octmode}-2)):1}
     mountpoint=$(stat -c "%m" "$file")
     fstype=$(stat --file-system -c "%T" "$file")
     file=$(readlink -f "$file")
 
-    if [[ ! -f "$file" ]]
-    then
-        echo "FILE $file DISAPPEARED"
-        return 1
-    fi
-
-    if [[ "$file" =~ '/proc/' ]]
+    if [[ "$file" =~ ^/proc/ ]] \
+    || [[ "$file" =~ ^/sys/ ]] \
+    || [[ "$file" =~ ^/dev/ ]] 
     then
         return 1
     fi
@@ -154,13 +151,16 @@ function printfileinfo() {
         alarm="alarm=\"$(join_by ' ' "${alert[@]}")\""
     fi
 
-    if which sha1sum >/dev/null 2>&1; then
-        sha1sum=$(sha1sum "$file" |awk '{print $1}')
-    elif which openssl >/dev/null 2>&1; then
-        sha1sum=$(openssl sha1 "$file" |awk '{print $2}')
-    else
-        sha1sum="unknown"
-    fi  
+    sha1sum="unknown"
+    if [[ -f "$file" ]] \
+    && [[ "$filesize" -lt 1000000000 ]]
+    then
+        if which sha1sum >/dev/null 2>&1; then
+            sha1sum=$(sha1sum "$file" |awk '{print $1}')
+        elif which openssl >/dev/null 2>&1; then
+            sha1sum=$(openssl sha1 "$file" |awk '{print $2}')
+        fi  
+    fi
 
     echo "file=\"$file\" fileowner=\"$fileowner\" filemode=\"$filemode\" octmode=\"$octmode\" mountpoint=\"$mountpoint\" fstype=\"$fstype\" checkowner=\"$checkowner\" checkownerdesc=\"$checkownerdesc\" sha1sum=\"$sha1sum\" $extrainfo $alarm"
 }
