@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170712 Kirby
+# 20170730 Kirby
 
 if [[ ${BASH_VERSINFO[0]} -lt 4 ]]
 then
@@ -11,6 +11,11 @@ unset PYTHONPATH
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:$PATH
 export LD_LIBRARY_PATH=/lib64:/usr/lib64:/lib:/usr/lib:/usr/lib32:/lib32:$LD_LIBRARY_PATH
 
+if ps -efwww |grep -v grep |grep -v $$ |grep $0 >/dev/null 2>&1
+then
+    echo "old $0 is still running"
+    exit 0
+fi
 
 ##################################################
 function join_by {
@@ -118,25 +123,30 @@ function printfileinfo() {
         return 1
     fi
 
+    if [[ "$file" =~ '/proc/' ]]
+    then
+        return 1
+    fi
+
     if [[ "$checkowner" != "$fileowner" ]] \
     && [[ "$fileowner" != "root" ]] \
     && [[ -n "$checkowner" ]]
     then
-        alert+=("$checkownerdesc and file owner mismatch. ")
+        alert+=("$checkownerdesc and file owner mismatch.")
     fi
     if [[ "$otherperm" == '2' ]] \
     || [[ "$otherperm" == '3' ]] \
     || [[ "$otherperm" == '6' ]] \
     || [[ "$otherperm" == '7' ]]
     then
-        alert+=("Permissions allow world write. ")
+        alert+=("Permissions allow world write.")
     fi
     if [[ "$groupperm" == '2' ]] \
     || [[ "$groupperm" == '3' ]] \
     || [[ "$groupperm" == '6' ]] \
     || [[ "$groupperm" == '7' ]]
     then
-        alert+=("Permissions allow group write. ")
+        alert+=("Permissions allow group write.")
     fi
 
     if [[ ${#alert} -ge 1 ]]

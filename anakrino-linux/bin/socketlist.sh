@@ -41,7 +41,7 @@ then
         cmdline=$(tr '\0' ' ' < /proc/"$pid"/cmdline)
         user=$(id -nu "${socket[6]}")
         echo "proto=\"${socket[0]}\" local=\"${socket[3]}\" remote=\"${socket[4]}\" state=\"${socket[5]}\" uid=\"${socket[6]}\" user=\"$user\" chroot=\"$chroot\" cmdline=\"${cmdline:0:92}\""
-        sleep 1
+        sleep $(( ( RANDOM * RANDOM + 1 ) % 120 + 120 ))
     done
 elif which ss >/dev/null 2>&1
 then
@@ -55,7 +55,7 @@ then
         uid=$(stat -c '%u' /proc/"$pid")
         user=$(id -nu "$uid")
         echo "proto=\"${socket[0]}\" local=\"${socket[4]}\" remote=\"${socket[5]}\" state=\"${socket[1]}\" uid=\"$uid\" user=\"$user\" chroot=\"$chroot\" cmdline=\"${cmdline:0:92}\""
-        sleep 1
+        sleep $(( ( RANDOM * RANDOM + 1 ) % 120 + 120 ))
     done
 fi
 

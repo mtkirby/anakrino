@@ -48,7 +48,7 @@ for tab in /var/spool/cron/*; do
         
         printfileinfo "$exe" "$username" "Cron user"
 
-        sleep $(( ( RANDOM * RANDOM + 1 ) % 30 + 30 ))
+        sleep $(( ( RANDOM * RANDOM + 1 ) % 90 + 90 ))
         timeoutcheck "$timeout" "$startepoch" "$startsleep"
     done
 done

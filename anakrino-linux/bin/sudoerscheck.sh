@@ -205,7 +205,7 @@ do
         echo "user=\"$user\" user_alias=\"$user_alias\" hosts=\"$hosts\" hosts_alias=\"$hosts_alias\" runas=\"$runas\" runas_alias=\"$runas_alias\" auth=\"$auth\" cmnd=\"$cmnd\" cmnd_alias=\"$cmnd_alias\""
         
         timeoutcheck "$timeout" "$startepoch" "$startsleep"
-        sleep $(( ( RANDOM * RANDOM + 1 ) % 30 + 30 ))
+        sleep $(( ( RANDOM * RANDOM + 1 ) % 120 + 120 ))
     done
 done
 

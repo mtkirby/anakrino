@@ -55,7 +55,7 @@ do
         libseen["$libfile"]=1
     fi
     # 84600 is 1 day - 1/2 hour
-    dosleep "$libtotalcount" "${#libseen[@]}" 84600
+    dosleep "$libtotalcount" "${#libseen[@]}" 259200
 done
 
 for pid in /proc/[0-9]*
@@ -102,7 +102,7 @@ do
         else
             libseen["$libfile"]=1
         fi
-        dosleep "$libtotalcount" "${#libseen[@]}" 84600
+        dosleep "$libtotalcount" "${#libseen[@]}" 259200
         timeoutcheck "$timeout" "$startepoch" "$startsleep"
     done
 done
