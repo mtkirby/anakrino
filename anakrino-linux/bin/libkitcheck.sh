@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170712 Kirby
+# 20171003 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -21,7 +21,7 @@ fi
 timeout=$(( $(date +"%s") + 604800 ))
 
 startepoch=$(date +%s)
-startsleep=$(( ( RANDOM * RANDOM + 1 ) % 518400 ))
+startsleep=$(( ( RANDOM * RANDOM + 1 ) % 86400 ))
 echo "starttime=\"$(date)\" startepoch=\"$startepoch\" startsleep=\"$startsleep\""
 sleep $startsleep
 
