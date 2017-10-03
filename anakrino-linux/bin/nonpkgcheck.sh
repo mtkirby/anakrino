@@ -18,13 +18,6 @@ else
 fi
 
 
-if uname -n |egrep -q 'dev|test|lte|sys|cte|\.dt0'
-then
-    echo "NON-PCI SYSTEM"
-    exit 0
-fi
-
-
 # terminate script after $timeout seconds pass
 timeout=$(( $(date +"%s") + 604800 ))
 
