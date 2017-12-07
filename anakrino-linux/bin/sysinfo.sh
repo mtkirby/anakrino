@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170712 Kirby
+# 20171206 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -30,10 +30,10 @@ sleep $startsleep
 
 id_arr=()
 
-for flag in '-s' '-n' '-r' '-v' '-m' '-p' '-i' '-o'
+for flag in 's' 'n' 'r' 'v' 'm' 'p' 'i' 'o'
 do
-    id="uname${flag}"
-    if id_data=$(uname $flag 2>/dev/null)
+    id="uname_${flag}"
+    if id_data=$(uname -$flag 2>/dev/null)
     then
         id_arr+=("$id=\"$id_data\"")
     fi
@@ -46,7 +46,7 @@ then
     do
         if id_data=$(egrep "^$id=" /etc/os-release |cut -d'=' -f2 |head -1 |sed -e 's/"//g'|egrep .)
         then
-            id=$(echo "os-$id" | tr '[:upper:]' '[:lower:]')
+            id=$(echo "os_$id" | tr '[:upper:]' '[:lower:]')
             id_arr+=("$id=\"$id_data\"")
         fi
         sleep 1
@@ -54,7 +54,7 @@ then
 elif [[ -f /etc/redhat-release ]]
 then
     redhatrel=$(head -1 /etc/redhat-release)
-    id_arr+=("redhat-release=\"$redhatrel\"")
+    id_arr+=("redhat_release=\"$redhatrel\"")
 fi
 
 
