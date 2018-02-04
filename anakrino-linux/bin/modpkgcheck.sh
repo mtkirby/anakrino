@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170712 Kirby
+# 20180204 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -54,7 +54,7 @@ do
     filename=$(modinfo "$module" 2>/dev/null |awk '/^filename:/ {print $2}')
     filename=$(readlink -f "$filename")
 
-    if ! rpm -f "$filename" -V >/dev/null 2>&1 \
+    if ! rpm -qf "$filename" >/dev/null 2>&1 \
     && ! dpkg-query -S "$filename" >/dev/null 2>&1
     then
         echo "ALERT=\"No package for module=$module filename=$filename\""

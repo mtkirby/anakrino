@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20171003 Kirby
+# 20180204 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -28,10 +28,10 @@ sleep $startsleep
 
 declare -a socket
 
-IFS=$'\n'
 
 if which netstat >/dev/null 2>&1
 then
+    IFS=$'\n'
     for line in $(netstat -peanut|awk '{ if ($6 == "LISTEN") print }' |sed -e 's/[[:space:]][[:space:]]*/ /g')
     do
         IFS=' '
@@ -45,6 +45,7 @@ then
     done
 elif which ss >/dev/null 2>&1
 then
+    IFS=$'\n'
     for line in $(ss -n -l -p -ut|awk '{ if ($2 == "LISTEN" || $2 == "UNCONN") print }' |sed -e 's/[[:space:]][[:space:]]*/ /g')
     do
         IFS=' '
