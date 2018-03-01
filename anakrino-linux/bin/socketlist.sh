@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20180204 Kirby
+# 20180228 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -37,8 +37,13 @@ then
         IFS=' '
         socket=($line)
         pid=${socket[8]%/*}
-        chroot=$(cat /proc/"$pid"/cpuset)
-        cmdline=$(tr '\0' ' ' < /proc/"$pid"/cmdline)
+        chroot=$(cat /proc/"$pid"/cpuset 2>/dev/null)
+        cmdline=$(tr '\0' ' ' 2>/dev/null < /proc/"$pid"/cmdline )
+        if [[ $pid == '-' ]]
+        then
+            chroot='kernel'
+            cmdline='kernel'
+        fi
         user=$(id -nu "${socket[6]}")
         echo "proto=\"${socket[0]}\" local=\"${socket[3]}\" remote=\"${socket[4]}\" state=\"${socket[5]}\" uid=\"${socket[6]}\" user=\"$user\" chroot=\"$chroot\" cmdline=\"${cmdline:0:92}\""
         sleep $(( ( RANDOM * RANDOM + 1 ) % 10 ))
@@ -51,14 +56,15 @@ then
         IFS=' '
         socket=($line)
         pid=$(echo "${socket[6]}" |sed -e 's/.*,pid=\([[:digit:]]*\),.*/\1/')
-        chroot=$(cat /proc/"$pid"/cpuset)
-        cmdline=$(tr '\0' ' ' < /proc/"$pid"/cmdline)
+        chroot=$(cat /proc/"$pid"/cpuset 2>/dev/null)
+        cmdline=$(tr '\0' ' ' 2>/dev/null < /proc/"$pid"/cmdline)
         uid=$(stat -c '%u' /proc/"$pid")
         user=$(id -nu "$uid")
         echo "proto=\"${socket[0]}\" local=\"${socket[4]}\" remote=\"${socket[5]}\" state=\"${socket[1]}\" uid=\"$uid\" user=\"$user\" chroot=\"$chroot\" cmdline=\"${cmdline:0:92}\""
         sleep $(( ( RANDOM * RANDOM + 1 ) % 10 ))
     done
 fi
+
 
 printexitstats "$startepoch" "$startsleep" "completed"
 
