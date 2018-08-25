@@ -1,5 +1,5 @@
 #!/bin/env python3
-# 20161203 Kirby
+# 20180308 Kirby
 
 from pprint import pprint
 import sys
@@ -71,9 +71,8 @@ report += """
             <tr>
                 <th>host</th>
                 <th>file</th>
-                <th>package</th>
                 <th>pid</th>
-                <th>user</th>
+                <th>fileowner</th>
             </tr>
 """
 
@@ -85,9 +84,8 @@ try:
                 report += '<tr>'
                 report += '<td><a href="' + splunkUrl + '%20host%3D' + row['host'] + '">' + row['host'] + '</a></td>'
                 report += '<td>' + row['file'] + '</td>'
-                report += '<td>' + row['package'] + '</td>'
                 report += '<td>' + row['pid'] + '</td>'
-                report += '<td>' + row['user'] + '</td>'
+                report += '<td>' + row['fileowner'] + '</td>'
                 report += '</tr>' + "\n"
             except:
                 pass

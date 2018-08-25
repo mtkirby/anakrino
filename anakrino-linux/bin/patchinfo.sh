@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170712 Kirby
+# 20180821 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -29,6 +29,7 @@ sleep $startsleep
 unset PYTHONPATH
 
 declare -a notices
+declare -a cves
 
 IFS=$'\n'
 if which dnf >/dev/null 2>&1 || which yum >/dev/null 2>&1
@@ -40,15 +41,41 @@ then
         yum=yum
     fi
     num=0
-    for line in $($yum updateinfo|egrep -a 'notice\(s\)$')
+    for line in $($yum updateinfo summary updates|egrep -a 'notice\(s\)$')
     do
         num=$(echo "$line" |awk '{print $1}')
         type=$(echo "$line" |sed -e 's/.* [0-9]* \(.*\) notice.*/\1/'|sed -e 's/ /_/g')
         notices+=($type=$num)
     done
     alarm="$(join_by ' ' "${notices[@]}")"
-    lastpatch=$($yum history |grep -i '| update ' |sed -e 's/.* \([0-9]*-[0-9]*-[0-9]*\) [0-9]*:[0-9]* .*/\1/' |head -1)
-    echo "updater=\"$yum\" lastpatchdate=\"$lastpatch\" $alarm"
+    lastpatch=$($yum history |egrep -i ' Update |, U' |sed -e 's/.* \([0-9]*-[0-9]*-[0-9]*\) [0-9]*:[0-9]* .*/\1/' |head -1)
+
+    for cve in $($yum updateinfo info updates 2>/dev/null  \
+        |sed -e 's/ /\n/g' \
+        |egrep -i 'CVE-[[:digit:]]+-[[:digit:]]' \
+        |tr '[a-z]' '[A-Z]' \
+        |sed -e 's/.*\(CVE-[[:digit:]]*-[[:digit:]]*\).*/\1/' \
+        |sort -u )
+    do
+        cves+=($cve)
+    done
+    cvelist="$(join_by ' ' "${cves[@]}")"
+
+    for repodate in $($yum repolist -v \
+        |egrep 'Repo-id|Repo-updated|^$' \
+        |cut -d':' -f2- \
+        |sed -e 's/^$/SPLITRECORDHERE/g' \
+        |tr '\n' ' '|sed -e 's/SPLITRECORDHERE/\n/g' \
+        |egrep "[[:alnum:]]" \
+        |sed -e 's/[[:space:]]*$//' \
+        |sed -e 's/^[[:space:]]*\([^[:space:]]*\)[[:space:]]*\(.*\)/REPODATE-\1="\2"/g' )
+    do
+        repodates+=($repodate)
+    done
+    repodatelist="$(join_by ' ' "${repodates[@]}")"
+
+    echo "updater=\"$yum\" lastpatchdate=\"$lastpatch\" $alarm missingCVEs=\"$cvelist\""
+    echo "updater=\"$yum\" $repodatelist"
 fi
 
 if which apt-get >/dev/null 2>&1
