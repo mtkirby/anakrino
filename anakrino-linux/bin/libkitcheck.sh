@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20171003 Kirby
+# 20190729 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -40,7 +40,7 @@ fi
 declare -A libseen
 
 ldcount=$(ldconfig -p |grep -c ' => ')
-proclibcount=$(awk '/ r-xp .* fd:/ {print $6}' /proc/[0-9]*/maps 2>/dev/null|sort|uniq |wc -l)
+proclibcount=$(awk '/ r-xp .* \// {print $6}' /proc/[0-9]*/maps 2>/dev/null|sort|uniq |wc -l)
 libtotalcount=$((ldcount + proclibcount))
 dupskip=0
 chrootcount=0
@@ -62,7 +62,7 @@ for pid in /proc/[0-9]*
 do
     # Check to see if exe file exists.
     # Sometimes a program will create a temporary script and delete it while running.
-    file=$(stat -c '%N' "$pid/exe" 2>/dev/null |grep ' -> '|sed -e "s/.*-> .\(\/.*\).$/\1/")
+    file=$(readlink -f "$pid/exe" 2>/dev/null)
     if [[ ! -f "$file" ]]
     then
         continue
@@ -83,7 +83,7 @@ do
         printfileinfo "$file" "" "" "alarm=\"LD_PRELOAD DETECTED\" preload=\"$preload\" process=\"$file\" pid=\"${pid##*/}\" procowner=\"$procowner\" procuid=\"$procuid\" loginuid=\"$loginuid\""
     fi
 
-    for libfile in $(awk '/ r-xp .* fd:/ {print $6}' "$pid"/maps 2>/dev/null)
+    for libfile in $(awk '/ r-xp .* \// {print $6}' "$pid"/maps 2>/dev/null)
     do
         libfile=$(readlink -f "$libfile")
         if [[ ${libseen["$libfile"]} == 1 ]]
