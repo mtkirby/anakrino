@@ -46,6 +46,8 @@ DATA COLLECTION SCRIPTS:
 11) sysinfo.sh - Outputs to the anakrino index with the sourcetype sysinfo.  This will output OS and hardware information
 12) patchinfo.sh - Outputs to the anakrino index with sourcetype patchinfo.  This script will show a count of missing security patches.
 13) socketlist.sh - Outputs to the anakrino index with the sourcetype socketlist.  This script will show what programs, and users, that have listening sockets.
+14) jarwarinfo.sh - Searches for java processes and outputs jar and war info.
+15) javaversion.sh - Finds running java processes and outputs the version.
 
 
 REPORT SCRIPTS:
