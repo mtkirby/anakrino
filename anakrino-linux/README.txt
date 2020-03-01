@@ -26,7 +26,7 @@ DATA COLLECTION SCRIPTS:
     2) Permission/ownership changes that could be a misconfiguration.
     3) There may be false positives caused by the application making changes to it's files.
 
-5) procpkgcheck.sh - Outputs to anakrino index with procpkgcheck sourcetype.  This script will examine running processes and only report on executables that do not belong to a known rpm or dpkg.  It will ignore any processes in a docker and/or lxc container.
+5) procpkgcheck.sh - Outputs to anakrino index with procpkgcheck sourcetype.  This script will examine running processes and report on executables, checksums, owners, package information, etc.  It will ignore any processes in a docker and/or lxc container.
     Things admins should look for:
     1) Any process that does not belong to a known rpm or dpkg could be from a rootkit
 

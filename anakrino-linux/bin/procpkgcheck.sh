@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170712 Kirby
+# 20200301 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -71,16 +71,31 @@ do
         seen["$file"]=1
     fi 
 
+    procowner=$(stat -c '%U' "$pid")
+    procuid=$(stat -c '%u' "$pid")
+    loginuid=$(cat "$pid"/loginuid)
+
     if ! rpm -qf "$file" >/dev/null 2>&1 \
     && ! dpkg-query -S "$file" >/dev/null 2>&1
     then
-        procowner=$(stat -c '%U' "$pid")
-        procuid=$(stat -c '%u' "$pid")
-        loginuid=$(cat "$pid"/loginuid)
-        printfileinfo "$file" "$procowner" "Process owner" "pid=\"${pid##*/}\" procowner=\"$procowner\" procuid=\"$procuid\" loginuid=\"$loginuid\""   
+        reportonfile "$file" "$procowner" "Process owner" "pid=\"${pid##*/}\" procowner=\"$procowner\" procuid=\"$procuid\" loginuid=\"$loginuid\" NotFromAPackage"
     fi
+    if dpkg-query -S "$file" >/dev/null 2>&1
+    then
+        packagename=$(dpkg-query -S "$file" |cut -d':' -f1)
+        packageversion=$(dpkg-query -s $packagename |awk '/^Version: / {print $2}')
+        reportonfile "$file" "$procowner" "Process owner" "pid=\"${pid##*/}\" procowner=\"$procowner\" procuid=\"$procuid\" loginuid=\"$loginuid\" dpkg_package_name=\"$packagename\" dpkg_package_version=\"$packageversion\""   
+    fi
+    if rpm -qif "$file" >/dev/null 2>&1
+    then
+        packagename=$(rpm -qif "$file" |awk '/^Name/ {print $3}' |head -1)
+        packageversion=$(rpm -qif "$file" |awk '/^Version/ {print $3}' |head -1)
+        packagerelease=$(rpm -qif "$file" |awk '/^Release/ {print $3}' |head -1)
+        reportonfile "$file" "$procowner" "Process owner" "pid=\"${pid##*/}\" procowner=\"$procowner\" procuid=\"$procuid\" loginuid=\"$loginuid\" rpm_package_name=\"$packagename\" rpm_package_version=\"$packageversion\" rpm_package_release=\"$packagerelease\""   
+    fi
+
     timeoutcheck "$timeout" "$startepoch" "$startsleep"
 done
 
-printexitstats "$startepoch" "$startsleep" "completed totalproccount=$totalproccount chrootcount=$chrootcount"
+printexitstats "$startepoch" "$startsleep" "\"completed\" totalproccount=\"$totalproccount\" chrootcount=\"$chrootcount\""
 
