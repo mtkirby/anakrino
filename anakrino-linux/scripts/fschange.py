@@ -1,5 +1,5 @@
 #!/bin/env python3
-# 20161203 Kirby
+# 20210322 Kirby
 
 from pprint import pprint
 import sys
@@ -41,7 +41,7 @@ for o, a in opts:
     elif o in ("--url"):
         splunkUrl = a
         splunkUrl = re.sub(r'/app/.*', "", a)
-        splunkUrl += '/app/search/search?earliest=-7d%40h&lastest=now&q=search%20index%3Danakrino-fschange'
+        splunkUrl += '/app/search/search?earliest=-7d%40h&lastest=now&q=search%20index%3Danakrino%20sourcetype%3Dfschange'
     elif o in ("--mailfrom"):
         mailFrom = a
     elif o in ("--mailto"):

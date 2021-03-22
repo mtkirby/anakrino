@@ -44,7 +44,7 @@ for o, a in opts:
     elif o in ("--url"):
         splunkUrl = a
         splunkUrl = re.sub(r'/app/.*', "", a)
-        splunkUrl += '/app/search/search?earliest=-7d%40h&lastest=now&q=search%20index%3Danakrino-croncheck'
+        splunkUrl += '/app/search/search?earliest=-7d%40h&lastest=now&q=search%20index%3Danakrino%20sourcetype%3Dcroncheck'
     elif o in ("--mailfrom"):
         mailFrom = a
     elif o in ("--mailto"):
