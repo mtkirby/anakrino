@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170712 Kirby
+# 20210330 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -33,7 +33,8 @@ IFS=$'\n'
 usercount=0
 for line in $(cat /etc/passwd)
 do 
-    IFS=':' passwd=($line)
+    #IFS=':' passwd=($line)
+    IFS=':' read -ra passwd <<< "$line"
     IFS=$'\n'
     username=${passwd[0]}
     home=${passwd[5]}
@@ -57,7 +58,8 @@ do
 
     # DES is 13 chars, so match at least 13
     shadowline=$(egrep "^$username:" /etc/shadow)
-    IFS=':' shadow=($shadowline)
+    #IFS=':' shadow=($shadowline)
+    IFS=':' read -ra shadow <<< "$shadowline"
     IFS=$'\n'
     if [[ "${#shadow[1]}" -ge 13 ]]
     then 

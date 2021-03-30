@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170712 Kirby
+# 20210330 Kirby
 
 renice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -39,7 +39,8 @@ fi
 # MAIN
 
 
-IFS='.' dockerversion=($(docker version |awk '/^Server version:/ {print $3}'))
+#IFS='.' dockerversion=($(docker version |awk '/^Server version:/ {print $3}'))
+IFS='.' read -ra dockerversion <<< $(docker version |awk '/^Server version:/ {print $3}')
 IFS=$'\n'
 if [[ ${dockerversion[0]} -le 1 ]] \
 && [[ ${dockerversion[1]} -le 7 ]]

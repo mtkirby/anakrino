@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20180228 Kirby
+# 20210330 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -35,7 +35,8 @@ then
     for line in $(netstat -peanut|awk '{ if ($6 == "LISTEN") print }' |sed -e 's/[[:space:]][[:space:]]*/ /g')
     do
         IFS=' '
-        socket=($line)
+        #socket=($line)
+        read -ra socket <<< "$line"
         pid=${socket[8]%/*}
         chroot=$(cat /proc/"$pid"/cpuset 2>/dev/null)
         cmdline=$(tr '\0' ' ' 2>/dev/null < /proc/"$pid"/cmdline )
@@ -54,7 +55,8 @@ then
     for line in $(ss -n -l -p -ut|awk '{ if ($2 == "LISTEN" || $2 == "UNCONN") print }' |sed -e 's/[[:space:]][[:space:]]*/ /g')
     do
         IFS=' '
-        socket=($line)
+        #socket=($line)
+        read -ra socket <<< "$line"
         pid=$(echo "${socket[6]}" |sed -e 's/.*,pid=\([[:digit:]]*\),.*/\1/')
         chroot=$(cat /proc/"$pid"/cpuset 2>/dev/null)
         cmdline=$(tr '\0' ' ' 2>/dev/null < /proc/"$pid"/cmdline)

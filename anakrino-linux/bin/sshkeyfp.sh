@@ -1,5 +1,5 @@
 #!/bin/bash
-# 20170712 Kirby
+# 20210330 Kirby
 
 nice 20 $$ >/dev/null 2>&1
 ionice -c3 -p $$ >/dev/null 2>&1
@@ -47,7 +47,8 @@ function do_fingerprint()
 
     if fingerprint=$(ssh-keygen -E md5 -l -f "$file" 2>/dev/null || ssh-keygen -l -f "$file")
     then
-        IFS=' ' fpa=($fingerprint)
+        #IFS=' ' fpa=($fingerprint)
+        IFS=' ' read -ra fpa <<< "$fingerprint"
         IFS=$'\n'
         keysize=${fpa[0]}
         # sometimes there is a MD5: prefix and sometimes there isn't.
@@ -93,7 +94,8 @@ do
         do
             md5=''
             sha256=''
-            IFS=' ' aka=($line)
+            #IFS=' ' aka=($line)
+            IFS=' ' read -ra aka <<< "$line"
             IFS=$'\n'
             if which base64 md5sum >/dev/null 2>&1
             then
