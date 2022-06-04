@@ -36,17 +36,25 @@ DATA COLLECTION SCRIPTS:
     Things admins should look for:
     1) Scripts that are owned by a different user than the runas user.  This could lead to a compromise.  The script owner has the ability to execute commands as the runas user.
     2) Excessive sudo permissions
+
 8) docker.sh - Ouputs to the anakrino index with the sourcetype docker.  This script will list docker names, images, commands, and ports.
+
 9) libkitcheck.sh - Outputs to the anakrino index with the sourcetype libkitcheck.  This script will examine the ld library cache and check each library file to make sure it belongs to a known installed package.  Next, it will examine the loaded libraries for each process and again check to make sure it belongs to a known installed package as well as alert for any process that was executed with LD_PRELOAD.
     Things admins should look for:
     1) Any output from this script should be examined.  It may be a library from a rootkit.
+
 10) nonpkgcheck.sh - Outputs to the anakrino index with the sourcetype nonpkgcheck.  This script finds all the directories that were created by packages and then searches those directories for files that do not belong to a package.
     Things admins should look for:
     1) There will be false positives.  Look for mystery executables.
+
 11) sysinfo.sh - Outputs to the anakrino index with the sourcetype sysinfo.  This will output OS and hardware information
+
 12) patchinfo.sh - Outputs to the anakrino index with sourcetype patchinfo.  This script will show a count of missing security patches.
+
 13) socketlist.sh - Outputs to the anakrino index with the sourcetype socketlist.  This script will show what programs, and users, that have listening sockets.
+
 14) jarwarinfo.sh - Searches for java processes and outputs jar and war info.
+
 15) javaversion.sh - Finds running java processes and outputs the version.
 
 
